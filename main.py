@@ -17,13 +17,16 @@ def main():
 
     # Use argparse to get the prompt as a command line argument
     parser = argparse.ArgumentParser(description="Chatbot")
-    parser.add_argument("prompt", type=str, help="User prompt")
+    parser.add_argument("user_prompt", type=str, help="User prompt")
     args = parser.parse_args()
+
+    # Initialize conversation history with user prompt
+    messages = [genai.types.Content(role="user", parts=[genai.types.Part(text=args.user_prompt)])]
     
     # API request
     response = client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=args.prompt
+        contents=messages
     )
 
     # Ensure request didn't fail
@@ -31,7 +34,7 @@ def main():
         raise RuntimeError("GenerateContentObject 'response' has no 'usage_metadata' property. Likely a failed API request.")
 
     # Print request data
-    print(f"User prompt: {args.prompt}")
+    print(f"User prompt: {args.user_prompt}")
     print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
     print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
     print(f"Response: {response.text}")

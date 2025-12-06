@@ -1,4 +1,5 @@
 import os
+import argparse
 from dotenv import load_dotenv
 from google import genai
 
@@ -14,13 +15,15 @@ def main():
     # Initialize Client
     client = genai.Client(api_key=api_key)
 
-    # Hardcoded prompt
-    prompt = "Why is Boot.dev such a great place to learn backend development? Use one paragraph maximum."
+    # Use argparse to get the prompt as a command line argument
+    parser = argparse.ArgumentParser(description="Chatbot")
+    parser.add_argument("prompt", type=str, help="User prompt")
+    args = parser.parse_args()
     
     # API request
     response = client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=prompt
+        contents=args.prompt
     )
 
     # Ensure request didn't fail
@@ -28,7 +31,7 @@ def main():
         raise RuntimeError("GenerateContentObject 'response' has no 'usage_metadata' property. Likely a failed API request.")
 
     # Print request data
-    print(f"User prompt: {prompt}")
+    print(f"User prompt: {args.prompt}")
     print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
     print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
     print(f"Response: {response.text}")

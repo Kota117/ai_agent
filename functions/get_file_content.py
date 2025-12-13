@@ -1,12 +1,6 @@
 import os
 
-# Need to use the ".config" notation when running from test_get_file_content.py,
-# but need the "config" notation when running script directly. This is a hacky way
-# to accomplish both
-try:
-    from config import MAX_CHARS
-except ModuleNotFoundError:
-    from .config import MAX_CHARS
+from .config import MAX_CHARS
 
 
 def get_file_content(working_directory, file_path):

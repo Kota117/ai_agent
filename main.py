@@ -3,7 +3,9 @@ import argparse
 
 from dotenv import load_dotenv
 from google import genai
+
 from prompts import system_prompt
+from functions.gather_schemas import available_functions
 
 api_key_name = "GEMINI_API_KEY"
 
@@ -26,6 +28,7 @@ def main():
     # Initialize conversation history with user prompt
     messages = [genai.types.Content(role="user", parts=[genai.types.Part(text=args.user_prompt)])]
 
+    # Optionally print User prompt
     if args.verbose:
         print(f"User prompt: {args.user_prompt}\n")
     
@@ -37,19 +40,28 @@ def generate_content(client, messages, verbose):
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=messages,
-        config=genai.types.GenerateContentConfig(system_instruction=system_prompt),
+        config=genai.types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+        )
     )
 
     # Ensure request didn't fail
     if not response.usage_metadata:
         raise RuntimeError("GenerateContentObject 'response' has no 'usage_metadata' property. Likely a failed API request.")
 
-    # Print request data
+    # Optionally print request data
     if verbose:
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-    print(f"Response:\n{response.text}")
-
+    
+    # Print response innformation
+    if not response.function_calls:
+        print(f"Response:\n{response.text}")
+        return None
+    
+    for function_call_part in response.function_calls:
+        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+    
     return None
 
 

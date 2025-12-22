@@ -4,8 +4,8 @@ import argparse
 from dotenv import load_dotenv
 from google import genai
 
+from call_function import available_functions, call_function
 from prompts import system_prompt
-from functions.gather_schemas import available_functions
 
 api_key_name = "GEMINI_API_KEY"
 
@@ -59,8 +59,18 @@ def generate_content(client, messages, verbose):
         print(f"Response:\n{response.text}")
         return None
     
-    for function_call_part in response.function_calls:
-        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+    function_responses = []
+    for function_call in response.function_calls:
+        result = call_function(function_call, verbose)
+        if (
+            not result.parts
+            or not result.parts[0].function_response
+            or not result.parts[0].function_response.response
+        ):
+            raise RuntimeError(f"Empty function response for {function_call.name}")
+        if verbose:
+            print(f"-> {result.parts[0].function_response.response}")
+        function_responses.append(result.parts[0])
     
     return None
 

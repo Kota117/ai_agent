@@ -6,6 +6,7 @@ from google import genai
 
 from call_function import available_functions, call_function
 from prompts import system_prompt
+from config import MAX_ITERATIONS
 
 api_key_name = "GEMINI_API_KEY"
 
@@ -32,7 +33,21 @@ def main():
     if args.verbose:
         print(f"User prompt: {args.user_prompt}\n")
     
-    generate_content(client, messages, args.verbose)
+    # Allow generate_content to run several times
+    iterations = 0
+    while True:
+        if iterations >= MAX_ITERATIONS:
+            print(f"Maximum iterations ({MAX_ITERATIONS}) reached.")
+            break
+
+        try:
+            final_response = generate_content(client, messages, args.verbose)
+            if final_response:
+                print(f"Final Response:\n{final_response}")
+                break
+            iterations += 1
+        except Exception as e:
+            print(f"Error in generate_content: {e}")
 
 
 def generate_content(client, messages, verbose):
@@ -54,11 +69,16 @@ def generate_content(client, messages, verbose):
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
     
-    # Print response innformation
+    # Add response candidates information to messages
+    if response.candidates:
+        for candidate in response.candidates:
+            messages.append(candidate.content)
+
+    # Return response information
     if not response.function_calls:
-        print(f"Response:\n{response.text}")
-        return None
+        return response.text
     
+    # Create function responses to append to messages
     function_responses = []
     for function_call in response.function_calls:
         result = call_function(function_call, verbose)
@@ -71,6 +91,8 @@ def generate_content(client, messages, verbose):
         if verbose:
             print(f"-> {result.parts[0].function_response.response}")
         function_responses.append(result.parts[0])
+    
+    messages.append(genai.types.Content(role="user", parts=function_responses))
     
     return None
 
